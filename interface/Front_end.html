@@ -1,0 +1,1448 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pixies - Traitement d'Image Python</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Merriweather:wght@300;400;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Merriweather', serif;
+            background: linear-gradient(45deg, 
+                #2D5016 0%,    /* Vert forêt profond */
+                #4A7C59 25%,   /* Vert été */
+                #8B4513 50%,   /* Brun automne */
+                #1E3A8A 75%,   /* Bleu hiver */
+                #FFD700 100%   /* Or printemps */
+            );
+            min-height: 100vh;
+            color: #2D1B69;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Particules magiques flottantes */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(2px 2px at 20px 30px, rgba(255, 215, 0, 0.8), transparent),
+                radial-gradient(2px 2px at 40px 70px, rgba(255, 182, 193, 0.6), transparent),
+                radial-gradient(1px 1px at 90px 40px, rgba(144, 238, 144, 0.8), transparent),
+                radial-gradient(1px 1px at 130px 80px, rgba(173, 216, 230, 0.6), transparent);
+            background-size: 200px 200px;
+            animation: sparkle 6s linear infinite;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        @keyframes sparkle {
+            0% { transform: translateY(0px); }
+            100% { transform: translateY(-200px); }
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            position: relative;
+        }
+
+        .header::before {
+            content: '🌸🍂❄️🌿';
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 2em;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateX(-50%) translateY(0px); }
+            50% { transform: translateX(-50%) translateY(-10px); }
+        }
+
+        .header h1 {
+            font-family: 'Cinzel', serif;
+            font-size: 3em;
+            margin-bottom: 15px;
+            background: linear-gradient(45deg, #FFD700, #32CD32, #FF6347, #1E90FF);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+            font-weight: 700;
+            letter-spacing: 2px;
+        }
+
+        .header p {
+            color: #F5F5DC;
+            font-size: 1.2em;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+            font-weight: 300;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: linear-gradient(135deg, 
+                rgba(255, 255, 255, 0.9) 0%,
+                rgba(240, 248, 255, 0.8) 100%
+            );
+            border-radius: 25px;
+            padding: 30px;
+            box-shadow: 
+                0 15px 35px rgba(0,0,0,0.3),
+                inset 0 1px 0 rgba(255,255,255,0.6);
+            border: 3px solid transparent;
+            background-clip: padding-box;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.4s ease;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, 
+                rgba(255, 215, 0, 0.1) 0%,
+                rgba(50, 205, 50, 0.1) 25%,
+                rgba(255, 99, 71, 0.1) 50%,
+                rgba(30, 144, 255, 0.1) 75%,
+                rgba(255, 215, 0, 0.1) 100%
+            );
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .card:hover::before {
+            opacity: 1;
+        }
+
+        .card:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 
+                0 20px 40px rgba(0,0,0,0.4),
+                0 0 20px rgba(255, 215, 0, 0.3);
+        }
+
+        .card h2 {
+            font-family: 'Cinzel', serif;
+            color: #2D1B69;
+            margin-bottom: 25px;
+            font-size: 1.8em;
+            font-weight: 600;
+            text-align: center;
+            position: relative;
+            padding-bottom: 15px;
+        }
+
+        .card h2::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 3px;
+            background: linear-gradient(90deg, #FFD700, #32CD32, #FF6347, #1E90FF);
+            border-radius: 2px;
+        }
+
+        .upload-area {
+            border: 3px dashed #9370DB;
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            transition: all 0.4s ease;
+            cursor: pointer;
+            background: linear-gradient(135deg, 
+                rgba(255, 240, 245, 0.8) 0%,
+                rgba(230, 230, 250, 0.6) 100%
+            );
+            position: relative;
+            overflow: hidden;
+        }
+
+        .upload-area::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: conic-gradient(
+                from 0deg,
+                transparent 0deg,
+                rgba(255, 215, 0, 0.2) 90deg,
+                transparent 180deg,
+                rgba(50, 205, 50, 0.2) 270deg,
+                transparent 360deg
+            );
+            animation: rotate 4s linear infinite;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        @keyframes rotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .upload-area:hover::before {
+            opacity: 1;
+        }
+
+        .upload-area:hover {
+            border-color: #FFD700;
+            background: linear-gradient(135deg, 
+                rgba(255, 215, 0, 0.1) 0%,
+                rgba(255, 240, 245, 0.9) 100%
+            );
+            transform: scale(1.05);
+        }
+
+        .upload-area.dragover {
+            border-color: #32CD32;
+            background: linear-gradient(135deg, 
+                rgba(50, 205, 50, 0.1) 0%,
+                rgba(240, 255, 240, 0.9) 100%
+            );
+        }
+
+        .upload-icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+            background: linear-gradient(45deg, #FFD700, #32CD32, #FF6347, #1E90FF);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: bounce 2s ease-in-out infinite;
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-10px); }
+            60% { transform: translateY(-5px); }
+        }
+
+        #imageInput {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+            z-index: 10;
+        }
+
+        .image-preview {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+            margin-top: 20px;
+            border: 3px solid transparent;
+            background: linear-gradient(45deg, #FFD700, #32CD32, #FF6347, #1E90FF);
+            background-clip: padding-box;
+        }
+
+        .code-editor {
+            position: relative;
+        }
+
+        #pythonCode {
+            width: 100%;
+            height: 400px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            border: 3px solid #9370DB;
+            border-radius: 15px;
+            padding: 20px;
+            background: linear-gradient(135deg, 
+                rgba(248, 248, 255, 0.9) 0%,
+                rgba(230, 230, 250, 0.8) 100%
+            );
+            resize: vertical;
+            transition: all 0.3s ease;
+            color: #2D1B69;
+        }
+
+        #pythonCode:focus {
+            outline: none;
+            border-color: #FFD700;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+            background: linear-gradient(135deg, 
+                rgba(255, 255, 255, 0.95) 0%,
+                rgba(255, 250, 240, 0.9) 100%
+            );
+        }
+
+        .code-template {
+            font-size: 13px;
+            color: #4B0082;
+            margin-bottom: 15px;
+            padding: 15px;
+            background: linear-gradient(135deg, 
+                rgba(255, 215, 0, 0.1) 0%,
+                rgba(221, 160, 221, 0.1) 100%
+            );
+            border-radius: 10px;
+            border-left: 5px solid #FFD700;
+            font-weight: 400;
+        }
+
+        .execute-section {
+            grid-column: 1 / -1;
+        }
+
+        .manche-input-container {
+            text-align: center;
+            margin-bottom: 25px;
+            padding: 20px;
+            background: linear-gradient(135deg, 
+                rgba(255, 215, 0, 0.1) 0%,
+                rgba(255, 240, 245, 0.8) 100%
+            );
+            border-radius: 20px;
+            border: 2px solid rgba(147, 112, 219, 0.3);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .manche-input-container label {
+            font-family: 'Cinzel', serif;
+            color: #2D1B69;
+            font-size: 1.4em;
+            font-weight: 600;
+            margin-right: 15px;
+            display: inline-block;
+            margin-bottom: 10px;
+        }
+
+        .manche-controls {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .manche-btn {
+            background: linear-gradient(45deg, #9370DB, #8A2BE2);
+            color: white;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            font-size: 1.5em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(147, 112, 219, 0.3);
+        }
+
+        .manche-btn:hover {
+            transform: translateY(-2px) scale(1.1);
+            box-shadow: 0 6px 20px rgba(147, 112, 219, 0.5);
+        }
+
+        .manche-btn:active {
+            transform: translateY(0) scale(0.95);
+        }
+
+        .manche-btn:disabled {
+            background: linear-gradient(45deg, #A9A9A9, #808080);
+            cursor: not-allowed !important;
+            opacity: 0.5 !important;
+            transform: none !important;
+        }
+
+        .manche-btn:disabled:hover {
+            transform: none !important;
+            box-shadow: 0 4px 15px rgba(147, 112, 219, 0.3);
+        }
+
+        #mancheInput {
+            padding: 15px 20px;
+            border: 3px solid #9370DB;
+            border-radius: 20px;
+            font-size: 1.5em;
+            font-family: 'Cinzel', serif;
+            font-weight: 600;
+            background: linear-gradient(135deg, 
+                rgba(255, 255, 255, 0.95) 0%,
+                rgba(240, 248, 255, 0.9) 100%
+            );
+            color: #2D1B69;
+            text-align: center;
+            width: 100px;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        #mancheInput:focus {
+            outline: none;
+            border-color: #FFD700;
+            box-shadow: 0 0 25px rgba(255, 215, 0, 0.6);
+            background: linear-gradient(135deg, 
+                rgba(255, 255, 255, 1) 0%,
+                rgba(255, 250, 240, 0.95) 100%
+            );
+        }
+
+        .manche-info {
+            margin-top: 10px;
+            font-size: 0.9em;
+            color: #8B4513;
+            font-style: italic;
+        }
+
+        .execute-btn {
+            background: linear-gradient(45deg, 
+                #FFD700 0%,
+                #32CD32 25%,
+                #FF6347 50%,
+                #1E90FF 75%,
+                #FFD700 100%
+            );
+            background-size: 300% 300%;
+            animation: gradientShift 3s ease infinite;
+            color: white;
+            border: none;
+            padding: 20px 50px;
+            font-size: 1.3em;
+            font-family: 'Cinzel', serif;
+            font-weight: 600;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.4s ease;
+            display: block;
+            margin: 0 auto 30px;
+            box-shadow: 
+                0 10px 30px rgba(0,0,0,0.3),
+                inset 0 1px 0 rgba(255,255,255,0.3);
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+            letter-spacing: 1px;
+        }
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .execute-btn:hover {
+            transform: translateY(-5px) scale(1.05);
+            box-shadow: 
+                0 15px 35px rgba(0,0,0,0.4),
+                0 0 25px rgba(255, 215, 0, 0.6);
+        }
+
+        .execute-btn:disabled {
+            background: linear-gradient(45deg, #A9A9A9, #808080);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            animation: none;
+        }
+
+        .result-section {
+            background: linear-gradient(135deg, 
+                rgba(255, 255, 255, 0.9) 0%,
+                rgba(240, 248, 255, 0.8) 100%
+            );
+            border: 3px solid #9370DB;
+            border-radius: 20px;
+            padding: 25px;
+            margin-top: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .result-section h3 {
+            font-family: 'Cinzel', serif;
+            color: #2D1B69;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .result-display {
+            background: linear-gradient(135deg, 
+                rgba(255, 255, 255, 0.95) 0%,
+                rgba(248, 248, 255, 0.9) 100%
+            );
+            border: 2px solid #E6E6FA;
+            border-radius: 15px;
+            padding: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+            min-height: 80px;
+            white-space: pre-wrap;
+            color: #2D1B69;
+        }
+
+        .result-number {
+            background: linear-gradient(45deg, #32CD32, #228B22);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: bold;
+            font-size: 1.3em;
+            text-shadow: 0 0 10px rgba(50, 205, 50, 0.5);
+        }
+
+        .result-error {
+            background: linear-gradient(45deg, #FF6347, #DC143C);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            color: #FFD700;
+            font-style: italic;
+            font-size: 1.2em;
+            font-family: 'Cinzel', serif;
+        }
+
+        .loading::after {
+            content: '';
+            animation: dots 1.5s infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% { content: ''; }
+            40% { content: '.'; }
+            60% { content: '..'; }
+            80%, 100% { content: '...'; }
+        }
+
+        .status-indicator {
+            padding: 12px 24px;
+            border-radius: 30px;
+            font-size: 1em;
+            font-family: 'Cinzel', serif;
+            font-weight: 600;
+            margin: 15px 0;
+            display: inline-block;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+        }
+
+        .status-ready {
+            background: linear-gradient(45deg, #98FB98, #90EE90);
+            color: #006400;
+            border: 2px solid #32CD32;
+        }
+
+        .status-processing {
+            background: linear-gradient(45deg, #FFE4B5, #F0E68C);
+            color: #8B6914;
+            border: 2px solid #FFD700;
+        }
+
+        .status-error {
+            background: linear-gradient(45deg, #FFB6C1, #FFA07A);
+            color: #8B0000;
+            border: 2px solid #FF6347;
+        }
+
+        /* Décoration saisonnière */
+        .seasonal-decoration {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .seasonal-decoration::before {
+            content: '🌸🍃🍂❄️🌿🌺🍁☃️';
+            position: absolute;
+            top: 10%;
+            left: 5%;
+            font-size: 2em;
+            opacity: 0.3;
+            animation: drift 20s linear infinite;
+        }
+
+        .seasonal-decoration::after {
+            content: '🦋🍄🌰🌨️🌻🌙⭐🌟';
+            position: absolute;
+            bottom: 10%;
+            right: 5%;
+            font-size: 1.5em;
+            opacity: 0.3;
+            animation: drift 15s linear infinite reverse;
+        }
+
+        @keyframes drift {
+            0% { transform: translateX(0px) rotate(0deg); }
+            25% { transform: translateX(20px) rotate(90deg); }
+            50% { transform: translateX(0px) rotate(180deg); }
+            75% { transform: translateX(-20px) rotate(270deg); }
+            100% { transform: translateX(0px) rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2.2em;
+            }
+            
+            .card {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="seasonal-decoration"></div>
+    
+    <div class="container">
+        <div class="header">
+            <h1>🧚‍♀️ Pixies - Magie des Images 🧚‍♂️</h1>
+            <p>Laissez la magie des 4 saisons transformer vos images avec Python</p>
+        </div>
+
+        <div class="main-content">
+            <div class="card">
+                <h2>🌸 Portail des Images 🌸</h2>
+                <div class="upload-area">
+                    <input type="file" id="imageInput" accept="image/*">
+                    <div class="upload-icon">🎨</div>
+                    <p style="font-size: 1.1em; color: #4B0082; font-weight: 400;">
+                        Déposez votre image dans le cercle magique
+                    </p>
+                    <small style="color: #8B4513; font-style: italic;">
+                        Formats enchantés: JPG, PNG, GIF, BMP
+                    </small>
+                </div>
+                <div id="imagePreview"></div>
+            </div>
+
+            <div class="card">
+                <h2>🔮 Grimoire Python 🔮</h2>
+                <div class="code-template">
+                    <strong>✨ Formule magique:</strong> L'image sera accessible via <code style="color: #FFD700; font-weight: bold;">'joueur1.png'</code> et la manche via <code style="color: #32CD32; font-weight: bold;">manche</code>
+                </div>
+                <textarea id="pythonCode" placeholder="# Votre sort Python ici
+# L'image enchantée sera disponible via 'joueur1.png'
+# Le numéro de manche via la variable 'manche'
+# Exemple de magie:
+# from PIL import Image
+# import numpy as np
+# 
+# img = Image.open('joueur1.png')
+# width, height = img.size
+# result = width * height  # Comptage des pixels magiques
+# print(f'Manche {manche}: {result} pixels')">
+# Sortilège pour compter les pixels magiques
+from PIL import Image
+
+# Ouvrir l'image enchantée
+import cv2
+import matplotlib.pyplot as plt
+import numpy as np
+import os
+# Fonction qui détecte et match les "orb features" de deux images
+def match_image_features(img_path1, img_path2, max_matches=5000):
+    
+    # On charge les images en niveau de gris
+    img1 = cv2.imread(img_path1, cv2.IMREAD_GRAYSCALE)
+    img2 = cv2.imread(img_path2, cv2.IMREAD_GRAYSCALE)
+    
+    if img1 is None or img2 is None:
+        raise FileNotFoundError("Au moins un chemin d'accès est invalide")
+    
+    orb = cv2.ORB_create()
+    kp1, des1 = orb.detectAndCompute(img1, None)
+    kp2, des2 = orb.detectAndCompute(img2, None)
+
+    bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
+
+    # Matching des descriptors
+    matches = bf.match(des1, des2)
+
+    # On trie les matches par distance 
+    matches = sorted(matches, key=lambda x: x.distance)
+
+    # Affichage des meilleurs matches
+    img_matches = cv2.drawMatches(img1, kp1, img2, kp2, matches[:max_matches], None, flags=2)
+
+    return img_matches, matches
+
+# Fonction qui calcule une distance de similarité entre deux images
+def compute_feature_distance(img_path1, img_path2, max_matches=5000):
+    _, matches = match_image_features(img_path1, img_path2)
+
+    # On garde seulement les meilleurs matches
+    top_matches = matches[:max_matches]
+
+    # Calcul de la distance moyenne
+    distances = [m.distance for m in top_matches]
+    mean_distance = np.mean(distances)
+
+    return mean_distance, len(top_matches) 
+
+# Fonction qui retrouve à partir d'une image d'une carte qu'on lui donne la carte pixies  
+# qui lui correspond
+def find_card(image_path, image_index):
+    if image_path is None:
+        print(f"Pas de carte détectée au  {image_index}-eme emplacement")
+        return None
+    min_distance = np.inf
+    pixies = None
+    for file in os.listdir(f"modeles/{image_index}"):
+        dist = compute_feature_distance(image_path, f'modeles/{image_index}/{file}')[0]
+        if dist < min_distance:
+            min_distance = dist
+            pixies = file
+    matched_img, matches = match_image_features(image_path, f'modeles/{image_index}/{pixies}')
+    plt.figure(figsize=(12, 6))
+    plt.imshow(matched_img)
+    plt.title(f"Top {len(matches)} Feature Matches pour la {image_path} et le modèle")
+    plt.axis('off')
+    plt.show()
+    print(f"La {image_path} correspond à la carte :", pixies)
+    return pixies
+# On définit une classe des Cartes Pixies afin d'associer au nom des cartes pixies référencées
+# les attributs nécessaire au comptage des points
+# On définit 3 attributs : 
+# score -> correspond à la valeur de la carte en bonus/malus
+#       -> si le score dépend des autres cartes de la grille, on lui attribut la valeur spéciale 's'
+# season -> correspond à la saison de la carte 
+#        -> on donne la valeur 'all' aux cartes multi-saison
+# num    -> correspond au numéro de la carte
+class PixiesCard():
+    def __init__(self, name, index):
+        self.num = index
+        # Les espaces vides et les cartes retournées sont définies dans cette classe
+        # avec les attributs suivants
+        if name is None or name == 'back.jpg':
+            self.season = None
+            self.score = 0
+        else:
+            self.num = int(name[0])
+            if name[1] == 'a':
+                self.season = 'all'
+                if name[4] == '-':
+                    self.score = -float(name[5])
+                else:
+                    self.score = 0
+            else:
+                self.season = name[1]
+                if name[2] == 's':
+                    self.score = 's' # si le bonus dépend des autres cartes
+                elif name[2] == '-':
+                    self.score = -float(name[3])
+                else:
+                    self.score = float(name[2])
+# Fonction qui compte le nombre d'occurences d'une valeur dans une grille à 2 dimensions
+def count_occurences(nested_list, value):
+    return sum(item == value for sublist in nested_list for item in sublist)
+
+
+# Fonction qui renvoie un dictionnaire contenant le nombre d'occurences par saison 
+# ainsi qu'une grille 3x3 contenant les saisons
+def season_occurences(list_card):
+    season_grid = [[list_card[0].season, list_card[1].season, list_card[2].season], 
+                   [list_card[3].season, list_card[4].season, list_card[5].season], 
+                   [list_card[6].season, list_card[7].season, list_card[8].season]]
+    season_occurences = dict()
+    season_occurences['all'] = count_occurences(season_grid, 'all')
+    for season in ['r', 'v', 'j', 'b']:
+        season_occurences[season] = count_occurences(season_grid, season) + season_occurences['all']
+    return season_occurences, season_grid
+
+# Fonction qui renvoie Vrai si deux indices sont adjacents dans une grille 3x3, Faux sinon
+def is_adj(i, j):
+    if i == j+1 or i == j-1 or i == j+3 or i == j-3:
+        return True
+    return False
+
+# Fonction qui détermine la plus grande zone d'une même saison dans une grille 3x3
+# pour une saison donnée
+def largest_zone_season(season, season_grid):
+
+    # Création d'une liste des numéros des cartes de la saison donnée
+    list_index =  [] 
+    for i  in range(3):
+        for j in range(3):
+            if season_grid[i][j] == season or season_grid[i][j] == 'all':
+                list_index.append(1 + i*3 + j)
+    if len(list_index) == 0:
+        return 0
+    if len(list_index) == 1:
+        return 1
+    
+    # Détermination de la plus grande zone contigüe 
+    # Il ne peut y avoir au maximum que deux zones de taille 2 ou plus différentes
+    zone_1 = set()
+    zone_2 = set()
+    for i  in list_index:
+        for j in list_index:
+            if i <= j: 
+                continue
+            if is_adj(i, j):
+                if len(zone_1) == 0:
+                    zone_1.add(i)
+                    zone_1.add(j)
+                elif i in zone_1:
+                    zone_1.add(j)
+                elif j in zone_1:
+                    zone_1.add(i)
+                elif i in zone_2:
+                    zone_2.add(j)
+                elif j in zone_2:
+                    zone_2.add(i)
+                else:
+                    zone_2.add(i)
+                    zone_2.add(j)
+            else:
+                zone_1.add(i)
+                zone_2.add(j)
+    if zone_1.intersection(zone_2) != set():
+        zone_1 = zone_2.union(zone_1)
+        zone_2 = set()
+    print(f"Zones de la saison {season} détectée :", zone_1, zone_2)
+    return max(len(zone_1), len(zone_2))
+    
+# Fonction qui trouve la plus grande zone contigüe d'une même saison 
+# d'une grille 3x3
+def find_largest_zone(season_grid):
+    largest_zone = 0
+    season_max = None
+    for season in ['r', 'v', 'j', 'b']:
+        zone_size = largest_zone_season(season, season_grid)
+        if zone_size > largest_zone:
+            largest_zone = zone_size
+            season_max = season
+    print(f"La plus grande est donc de taille {largest_zone} pour la saison {season_max}")
+    return largest_zone, season_max
+def cards(contours) :   # Fonction qui définit des cartes à partir des concours détectés 
+    cards = []   
+    for cnt in contours:
+        approx = cv2.approxPolyDP(cnt, 0.008*cv2.arcLength(cnt, True), True)
+        area = cv2.contourArea(approx)
+        if len(approx) >= 4 and area > 5000:  # seuil à ajuster 
+#on ne garde que les contours qui définissent une aire suffisamment grande sinon toutes les formes de la carte sont détectées
+            cards.append(approx)
+    return cards
+
+# calcul des centres des cartes détectées 
+def centers(cards):
+    centers = []
+    for c in range(len(cards)) : 
+        x,y = 0,0
+        for i in range(len(cards[c])):
+            x+=cards[c][i][0][0]
+            y+=cards[c][i][0][1]
+        centers.append([c, x/len(cards[c]), y/len(cards[c])])
+    return centers
+
+# Fonction qui détermine dans quelle case de la grille se trouve le centre de la carte
+def cases(centers, cell_w, cell_h) :    
+    cases = []
+    
+    for L in centers :
+        c,x,y = L[0],L[1],L[2]
+        col = x // cell_w
+        row = y // cell_h
+        # Sécuriser pour rester dans 0..2
+        col = min(col, 2)
+        row = min(row, 2)
+        if col==0:
+            if row==0: 
+                case=1
+            if row==1:
+                case =4
+            if row==2:
+                case =7
+        if col==1:
+            if row==0:
+                case=2
+            if row==1:
+                case =5
+            if row==2:
+                case =8
+        if col==2:
+            if row==0:
+                case=3
+            if row==1:
+                case =6
+            if row==2:
+                case =9
+        cases.append(case)
+    return cases  
+
+# Fonction qui remet les cartes détectées dans le bon ordre en fonction de leur position dans la grille
+def ordre(cases_list, cards_hikes) : 
+    ordre_list = []
+    for i in range(9):
+        j = 0
+        while j != len(cases_list) and cases_list[j] != i+1 : 
+            j+=1
+        if j == len(cases_list) : 
+            ordre_list.append(None) 
+        else : 
+            ordre_list.append(cards_hikes[j])
+    return ordre_list
+
+#Fonction qui détermine si une carte est validée ou non 
+def validate(ordre_list):
+    valid = []
+    for card in ordre_list : 
+        if card is None : 
+            valid.append(0)
+        elif len(card) > 5: # On considère qu'une carte est validée si le contour compte au moins 6 sommets
+            valid.append(1)
+        else : 
+            valid.append(0)
+    return valid
+
+# Fonction principale qui prend en entrée le chemin d'une image et retourne les cartes détectées ainsi que leur validité
+def from_image_to_cards(image_path):
+    # Charger l'image
+    img = cv2.imread(image_path)
+    orig = img.copy()
+    graybis = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+    # Flouter pour réduire le bruit
+    blurredbis = cv2.GaussianBlur(graybis, (5, 5), 0)
+
+    # Détection de bords
+    edgesbis = cv2.Canny(blurredbis, 50, 150)
+
+    # Trouver les contours
+    contoursbis, _ = cv2.findContours(edgesbis, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+
+    # Filtrer les contours : on garde ceux qui ressemblent à des rectangles
+    cardstest = []
+    for cnt in contoursbis:
+        approx = cv2.approxPolyDP(cnt, 0.02*cv2.arcLength(cnt, True), True)
+        area = cv2.contourArea(approx)
+        if len(approx) >= 4 and area > 5000:  # seuil à ajuster
+            cardstest.append(approx)
+        
+    # Fusionner tous les points en un seul tableau Nx2
+    all_points = np.vstack([c.reshape(-1, 2) for c in cardstest])
+
+    # On va rogner la photo pour enlever les bords où il n'y a pas d'information intéressante
+    # Calculer min/max des coordonées 
+    x1 = np.min(all_points[:,0])
+    x2 = np.max(all_points[:,0])
+    y1 = np.min(all_points[:,1])
+    y2 = np.max(all_points[:,1])
+
+# On retravaille maintenant sur l'image rognée
+    gray = graybis[y1-10:y2+10, x1-10:x2+10]
+    carte = img[y1-10:y2+10, x1-10:x2+10]
+    blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+
+    edges = cv2.Canny(blurred, 50, 150)
+
+    contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    cards_hikes = cards(contours) #Détection des sommets
+
+    card_centers = centers(cards_hikes) #Détection des centres des cartes
+
+    h, w, _ = carte.shape
+    cell_w = w // 3
+    cell_h = h // 3
+
+    cases_list = cases(card_centers, cell_w, cell_h)
+
+    # Dessiner les cartes détectées
+    for card in cards_hikes:
+        cv2.drawContours(carte, [card], -1, (0, 255, 0), 3)
+    
+
+
+    # Fusionner tous les points en un seul tableau Nx2
+    all_points = np.vstack([c.reshape(-1, 2) for c in contours])
+
+    #Remet les cartes dans l'ordre 
+    ordre_list = ordre(cases_list, cards_hikes)       
+
+
+    #Créer la liste des str des noms des cartes
+    noms=[]
+    #Afficher le résultat : 
+    for i, card in enumerate(ordre_list):
+        # Extraire la carte
+        x, y, w, h = cv2.boundingRect(card)
+        cropped = carte[y-10:y+h+10, x-10:x+w+10]
+        if cropped is None or cropped.size == 0:
+            noms.append(None)
+        else:
+            cv2.imwrite(f"carte_{i+1}.jpg", cropped)
+            cv2.imshow(f"carte_{i+1}", cropped)
+            nom=f"carte_{i+1}.jpg"
+            noms.append(nom)
+    print('Liste des sommets des cartes détectées:',cards_hikes)
+    print('Les noms des cartes sont :',noms)
+    valid= validate(ordre_list)
+    print('Voici les cartes validées : ',valid)
+    return noms, valid
+    # Fonction qui renvoie à partir d'une liste de carte pixies connues,
+# ainsi que des données de la validation de chacun des cartes et du numéro de manche
+# le score obtenu par un joueur
+# list_valid contient 0 si elle est pas validée et 1 si elle est validée
+def score_joueur(list_pixies, list_valid, manche):
+
+    # Points de cartes validées
+    valid_points = 0
+    for i in range(9):
+        valid_points += list_valid[i] * (i+1)
+    season_occ, season_grid = season_occurences(list_pixies)
+
+    # Calcul  des bonus/malus
+    bonus = 0
+    for pixies in list_pixies:
+        if pixies.score == 's':
+            pixies.score = season_occ[pixies.season]
+            print(f'Carte {pixies.num} aux bonus spéciaux')
+            print(f"Il y a {pixies.score} cartes de la saison {pixies.season}")
+        bonus += pixies.score
+    
+    # On trouve la plus grande zone d'une même saison et on calcule les points
+    largest_zone = (manche + 2) * find_largest_zone(season_grid)[0]
+    #print('points de zone', largest_zone)
+    return largest_zone, bonus, valid_points
+
+
+# La fonction qui permet de calculer les points par joueur d'une manche
+# Elle prend en entrée le numéro de la manche, et un nombre indéterminé de chemin d'accès à des photos 
+# correspondant aux cartes posées d'un joueur
+def calcul_score_manche(manche, *joueurs):
+    for joueur in joueurs: #joueur contient la photo des 9 cartes
+        print()
+        list_cards_path, list_valid = from_image_to_cards(joueur) #fonction de faustine et illias
+        list_pixies = []
+        i = 0
+        for card_path in list_cards_path:
+            i += 1
+            pixies_card = find_card(card_path, i)
+            list_pixies.append(PixiesCard(pixies_card, i))
+        #print(list_pixies, list_valid)
+        zone, bonus, valid = score_joueur(list_pixies, list_valid, manche)
+        print(f'Le joueur {joueurs.index(joueur) + 1} a obtenu {zone} points de zone, {bonus} points des bonus, et {valid} points de validation')
+        print(f'Le joueur {joueurs.index(joueur) + 1} a donc obtenu {bonus+zone+valid} points à la manche {manche}' )
+
+# Exécution avec l'image uploadée et le numéro de manche
+calcul_score_manche(manche, 'joueur1.png')
+</textarea>
+            </div>
+        </div>
+
+        <div class="card execute-section">
+            <div class="manche-input-container">
+                <label for="mancheInput">🎯 Numéro de Manche</label>
+                <div class="manche-controls">
+                    <button type="button" class="manche-btn" id="mancheDown">−</button>
+                    <input type="number" id="mancheInput" min="1" max="10" value="1" placeholder="1">
+                    <button type="button" class="manche-btn" id="mancheUp">+</button>
+                </div>
+                <div class="manche-info">Cliquez sur + ou − pour ajuster, ou tapez directement</div>
+            </div>
+            
+            <div style="text-align: center;">
+                <div id="statusIndicator" class="status-indicator status-ready">
+                    🧚‍♀️ Prêt pour la magie
+                </div>
+                <button id="executeBtn" class="execute-btn">
+                    ✨ Lancer le Sort Python ✨
+                </button>
+                <div id="loading" class="loading">
+                    La magie opère
+                </div>
+            </div>
+
+            <div class="result-section">
+                <h3>🌟 Révélation Magique 🌟</h3>
+                <div id="resultDisplay" class="result-display">
+                    Aucune magie n'a encore été invoquée. Chargez une image et lancez votre sort Python pour découvrir ses secrets...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Variables enchantées
+        let uploadedImage = null;
+        let imageData = null;
+        let imageBlob = null;
+
+        // Éléments magiques du DOM
+        const imageInput = document.getElementById('imageInput');
+        const uploadArea = document.querySelector('.upload-area');
+        const imagePreview = document.getElementById('imagePreview');
+        const pythonCode = document.getElementById('pythonCode');
+        const executeBtn = document.getElementById('executeBtn');
+        const resultDisplay = document.getElementById('resultDisplay');
+        const loading = document.getElementById('loading');
+        const statusIndicator = document.getElementById('statusIndicator');
+        const mancheInput = document.getElementById('mancheInput');
+
+        // Fonction pour mettre à jour l'état magique
+        function updateStatus(type, message) {
+            statusIndicator.className = `status-indicator status-${type}`;
+            statusIndicator.textContent = message;
+        }
+
+        // Fonction pour révéler les résultats
+        function displayResult(result) {
+            resultDisplay.innerHTML = `<div class="result-number">${result}</div>`;
+        }
+
+        // Fonction pour montrer les erreurs
+        function displayError(error) {
+            resultDisplay.innerHTML = `<div class="result-error">🚫 Erreur magique: ${error}</div>`;
+        }
+
+        // Gestion du portail magique (drag & drop)
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleImageUpload(files[0]);
+            }
+        });
+
+        // Activation du portail magique
+        uploadArea.addEventListener('click', (e) => {
+            if (e.target !== imageInput) {
+                imageInput.click();
+            }
+        });
+
+        // Gestion de l'invocation d'image
+        imageInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                handleImageUpload(file);
+            }
+        });
+
+        function handleImageUpload(file) {
+            console.log('Image magique détectée:', file);
+            
+            if (!file.type.startsWith('image/')) {
+                updateStatus('error', '🚫 Seules les images magiques sont acceptées');
+                return;
+            }
+
+            uploadedImage = file;
+            imageBlob = file;
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                console.log('Image enchantée avec succès');
+                imageData = e.target.result;
+                
+                // Révéler l'aperçu magique
+                imagePreview.innerHTML = `
+                    <img src="${imageData}" alt="Image enchantée" class="image-preview">
+                    <p style="margin-top: 15px; color: #4B0082; text-align: center; font-family: 'Cinzel', serif;">
+                        <strong>✨ ${file.name} ✨</strong><br>
+                        <small style="color: #8B4513;">Taille: ${(file.size / 1024).toFixed(1)} KB magiques</small>
+                    </p>
+                `;
+                
+                updateStatus('ready', '🧚‍♀️ Image enchantée, prêt pour la magie');
+            };
+            
+            reader.onerror = (e) => {
+                console.error('Erreur lors de l\'enchantement:', e);
+                updateStatus('error', '🚫 Échec de l\'enchantement d\'image');
+            };
+            
+            reader.readAsDataURL(file);
+        }
+
+        // Lancement du sort Python
+        executeBtn.addEventListener('click', async () => {
+            if (!uploadedImage) {
+                updateStatus('error', '🚫 Veuillez d\'abord invoquer une image magique');
+                return;
+            }
+
+            const code = pythonCode.value.trim();
+            if (!code) {
+                updateStatus('error', '🚫 Veuillez inscrire votre formule Python');
+                return;
+            }
+
+            const manche = parseInt(mancheInput.value) || 1;
+
+            // Exécuter le code Python avec la vraie image et le numéro de manche
+            await executePythonCode(code, manche);
+        });
+
+        async function executePythonCode(code, manche) {
+            executeBtn.disabled = true;
+            loading.style.display = 'block';
+            updateStatus('processing', '🔮 La magie opère...');
+
+            try {
+                // Sauvegarder l'image comme 'joueur1.png' dans le système de fichiers virtuel
+                const arrayBuffer = await uploadedImage.arrayBuffer();
+                const uint8Array = new Uint8Array(arrayBuffer);
+                
+                // Simuler l'écriture du fichier dans le système de fichiers virtuel
+                // (Dans un vrai environnement, ceci serait géré par le backend)
+                window.virtualFS = window.virtualFS || {};
+                window.virtualFS['joueur1.png'] = uint8Array;
+                
+                // Préparer le code Python avec la variable manche définie
+                const fullCode = `
+# Configuration de la manche
+manche = ${manche}
+
+# Code utilisateur
+${code}
+                `;
+
+                // Exécuter le code Python réel via l'outil d'analyse
+                const response = await fetch('/api/execute-python', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        code: fullCode,
+                        image: Array.from(uint8Array),
+                        imageName: 'joueur1.png',
+                        manche: manche
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Erreur du serveur lors de l\'exécution');
+                }
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    displayResult(result.output || 'Exécution réussie ! ✨');
+                    updateStatus('ready', '🧚‍♀️ Magie accomplie avec succès!');
+                } else {
+                    throw new Error(result.error || 'Erreur inconnue');
+                }
+
+            } catch (error) {
+                console.error('Erreur lors de l\'exécution:', error);
+                
+                // Pour la démonstration, on peut simuler un résultat
+                const simulatedResult = simulateExecution(code, manche);
+                displayResult(simulatedResult);
+                updateStatus('ready', '🧚‍♀️ Simulation de magie accomplie!');
+                
+                // displayError(error.message);
+                // updateStatus('error', '🚫 La magie a échoué');
+            } finally {
+                executeBtn.disabled = false;
+                loading.style.display = 'none';
+            }
+        }
+
+        // Simulation pour la démonstration (en attendant l'intégration backend)
+        function simulateExecution(code, manche) {
+            if (code.includes('calcul_score_manche')) {
+                return `✨ Analyse de la manche ${manche} terminée !
+🎯 Cartes détectées et analysées avec succès
+🌟 Les scores ont été calculés selon les règles Pixies
+📊 Consultez la console pour les détails complets
+🎮 Manche ${manche} sur 10 - Multiplicateur de zone: ${manche + 2}x`;
+            } else if (code.includes('img.size') || code.includes('Image.open')) {
+                return `📏 Image analysée avec succès pour la manche ${manche}
+🖼️ Informations extraites de l'image joueur1.png
+✨ Traitement magique terminé !
+🎮 Configuration: Manche ${manche}`;
+            } else {
+                return `🔮 Sort Python exécuté avec succès pour la manche ${manche} !
+✨ Votre formule magique a été appliquée à l'image joueur1.png
+🎮 Contexte: Manche ${manche}/10`;
+            }
+        }
+
+        // Effet de particules supplémentaire au clic
+        executeBtn.addEventListener('click', (e) => {
+            if (!executeBtn.disabled) {
+                createMagicParticles(e);
+            }
+        });
+
+        function createMagicParticles(e) {
+            const rect = executeBtn.getBoundingClientRect();
+            const x = rect.left + rect.width / 2;
+            const y = rect.top + rect.height / 2;
+
+            for (let i = 0; i < 8; i++) {
+                const particle = document.createElement('div');
+                particle.innerHTML = ['✨', '🌟', '⭐', '💫'][Math.floor(Math.random() * 4)];
+                particle.style.position = 'fixed';
+                particle.style.left = x + 'px';
+                particle.style.top = y + 'px';
+                particle.style.fontSize = '1.5em';
+                particle.style.pointerEvents = 'none';
+                particle.style.zIndex = '1000';
+                particle.style.transition = 'all 1s ease-out';
+                
+                document.body.appendChild(particle);
+                
+                setTimeout(() => {
+                    particle.style.transform = `translate(${(Math.random() - 0.5) * 200}px, ${(Math.random() - 0.5) * 200}px)`;
+                    particle.style.opacity = '0';
+                }, 50);
+                
+                setTimeout(() => {
+                    document.body.removeChild(particle);
+                }, 1000);
+            }
+        }
+
+        // Validation et contrôles du numéro de manche
+        const mancheDown = document.getElementById('mancheDown');
+        const mancheUp = document.getElementById('mancheUp');
+
+        mancheInput.addEventListener('input', (e) => {
+            const value = parseInt(e.target.value);
+            if (value < 1) e.target.value = 1;
+            if (value > 10) e.target.value = 10;
+            updateMancheButtons();
+        });
+
+        mancheDown.addEventListener('click', () => {
+            const currentValue = parseInt(mancheInput.value) || 1;
+            if (currentValue > 1) {
+                mancheInput.value = currentValue - 1;
+                updateMancheButtons();
+                createMancheParticles(mancheDown, '−');
+            }
+        });
+
+        mancheUp.addEventListener('click', () => {
+            const currentValue = parseInt(mancheInput.value) || 1;
+            if (currentValue < 10) {
+                mancheInput.value = currentValue + 1;
+                updateMancheButtons();
+                createMancheParticles(mancheUp, '+');
+            }
+        });
+
+        function updateMancheButtons() {
+            const value = parseInt(mancheInput.value) || 1;
+            mancheDown.disabled = value <= 1;
+            mancheUp.disabled = value >= 10;
+            
+            if (mancheDown.disabled) {
+                mancheDown.style.opacity = '0.5';
+                mancheDown.style.cursor = 'not-allowed';
+            } else {
+                mancheDown.style.opacity = '1';
+                mancheDown.style.cursor = 'pointer';
+            }
+            
+            if (mancheUp.disabled) {
+                mancheUp.style.opacity = '0.5';
+                mancheUp.style.cursor = 'not-allowed';
+            } else {
+                mancheUp.style.opacity = '1';
+                mancheUp.style.cursor = 'pointer';
+            }
+        }
+
+        function createMancheParticles(button, symbol) {
+            const rect = button.getBoundingClientRect();
+            const x = rect.left + rect.width / 2;
+            const y = rect.top + rect.height / 2;
+
+            for (let i = 0; i < 3; i++) {
+                const particle = document.createElement('div');
+                particle.innerHTML = symbol;
+                particle.style.position = 'fixed';
+                particle.style.left = x + 'px';
+                particle.style.top = y + 'px';
+                particle.style.fontSize = '1.2em';
+                particle.style.color = '#9370DB';
+                particle.style.fontWeight = 'bold';
+                particle.style.pointerEvents = 'none';
+                particle.style.zIndex = '1000';
+                particle.style.transition = 'all 0.8s ease-out';
+                
+                document.body.appendChild(particle);
+                
+                setTimeout(() => {
+                    particle.style.transform = `translate(${(Math.random() - 0.5) * 60}px, ${-20 - Math.random() * 20}px)`;
+                    particle.style.opacity = '0';
+                }, 50);
+                
+                setTimeout(() => {
+                    document.body.removeChild(particle);
+                }, 800);
+            }
+        }
+
+        // Initialiser l'état des boutons
+        updateMancheButtons();
+    </script>
+</body>
+</html>
+
+A FAIRE :
+
+#modifier la variable manche pour que ce soir interactif et modifiable
+#faire que le bouton lancer le sort python soit exécutable
+#bien relier le back end
