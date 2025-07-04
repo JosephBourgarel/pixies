@@ -1,4 +1,7 @@
-# pixies
+# Pixies : comptage des points
+
+Il s'agit d'un programme qui prend en entrée une ou plusieurs photos de grille de cartes de joueurs d'une manche de pixies et qui renvoie le nombre de points par joueur. 
+
 La première composante du système constitue le module de reconnaissance et d'indexation des cartes individuelles, développé avec des techniques de vision par ordinateur utilisant la librairie OpenCV. Cette partie du code prend en entrée un chemin vers une photo d'une grille de carte en fin de partie et redonne en sortie autant de fichiers que de cartes dans la grille, ainsi qu'une liste de booléens qui dit si les cartes sont validées (1) ou non (0). 
 Dans un premier temps, on charge l'image et on la met en niveau de gris et on la floute légèrement pour réduire le bruit. Ensuite on commence la détection des contours à l'aide de la fonction cv2.findContours. Afin de réduire le nombre de côtés du polygone obtenu, on ne garde que les coins ayant un angle important (loin de 180 degrés) afin de s'approcher le plus possible d'un rectangle. Aussi, on impose une aire minimale pour ne pas détourer les motifs du fond et des cartes, car seule la forme des cartes nous intéresse ici : on ne souhaite pas encore repérer les détails sur les cartes. 
 L'étape suivante consiste à rogner la photo : en effet seulement la partie qui représente les cartes nous intéresse. On coupe donc au niveau des abscisses et ordonnées maximales et minimales de ces contours de cartes, auxquelles on ajoute quelques pixels par sécurité.
